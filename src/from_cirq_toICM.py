@@ -16,17 +16,15 @@ def test_circuit():
     q0 = cirq.LineQubit(0)
     q1 = cirq.LineQubit(1)
     circuit = cirq.Circuit()
-    circuit.append([cirq.H(q0), cirq.CNOT(q0, q1), cirq.measure(q0, q1)])
+    circuit.append([cirq.H(q0), cirq.CNOT(q0, q1)])
     return circuit
 
 def decompose_to_ICM(circuit):
     json_string = cirq.to_json(circuit)
-
     with open("input_cirq_circuit.json", "w") as outfile:
         outfile.write(json_string)
     j = julia.Julia()
     j.include("jabba.jl")
-
     cirq_circuit = cirq.read_json("output_cirq_ICM_circuit.json")
     print(cirq_circuit)
 
