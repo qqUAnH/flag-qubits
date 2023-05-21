@@ -1,7 +1,6 @@
 
 import cirq
-import julia
-
+from julia.api import Julia
 import json
 def keep_clifford_plus_T(op):
     if isinstance(op.gate, (cirq.XPowGate,
@@ -16,15 +15,24 @@ def test_circuit():
     q0 = cirq.LineQubit(0)
     q1 = cirq.LineQubit(1)
     circuit = cirq.Circuit()
-    circuit.append([cirq.H(q0), cirq.CNOT(q0, q1)])
+    circuit.append([cirq.H(q0), cirq.CNOT(q0, q1), cirq.T(q0)])
     return circuit
+
+def test_circuit2():
+    qubits = [cirq.LineQubit(i) for i in range(3)]
+    cirq_circuit = cirq.Circuit()
+    cirq_circuit.append(cirq.CCNOT(*qubits))
+    ct_circuit = cirq.Circuit(cirq.decompose(cirq_circuit, keep=keep_clifford_plus_T))
+    return ct_circuit
+
 
 def decompose_to_ICM(circuit):
     json_string = cirq.to_json(circuit)
     with open("input_cirq_circuit.json", "w") as outfile:
         outfile.write(json_string)
-    j = julia.Julia()
-    j.include("jabba.jl")
+    #j = Julia(compiled_modules=False)
+    #j.eval('include("jabba.jl")')
+
     cirq_circuit = cirq.read_json("output_cirq_ICM_circuit.json")
     print(cirq_circuit)
 

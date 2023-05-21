@@ -7,9 +7,16 @@ class qubit_block:
     #TODO:move qubits to init
     def __init__(self, qubits, stab_code):
         qubit_block.block_id += 1
+
         self.qubits = qubits
+        self.sydrome_ancilla = cirq.NamedQubit("a"+str(self.block_id))
         self.stab_code = stab_code
         self.qubits = cirq.NamedQubit.range(len(stab_code), prefix=str(self.block_id))
+
+
+
+    def add_flag_ancilla(number_of_flag):
+        self.flag_ancilla = None
 
 
 class ft_measurement:
@@ -34,6 +41,12 @@ class ft_gate:
                 print(pair[0],pair[1])
                 gates.append(self.gate.on(pair[0], pair[1]))
         return gates
+
+    def sydrome_measurement(self):
+        return None
+
+    def correction(self):
+        return None
 
 
 
