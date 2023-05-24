@@ -1,52 +1,64 @@
-# TODO: Step1:replace each qubits in the original circuit to encoded block of quits
 import cirq
-
-
 class qubit_block:
     block_id = 0
     #TODO:move qubits to init
     def __init__(self, qubits, stab_code):
+        self.qubits = qubits
+        self.sydrome_ancilla = cirq.NamedQubit(str(self.block_id)+"a")
+        self.stab_code = stab_code
+        self.qubits = cirq.NamedQubit.range(len(stab_code[0]), prefix=str(self.block_id))
         qubit_block.block_id += 1
 
-        self.qubits = qubits
-        self.sydrome_ancilla = cirq.NamedQubit("a"+str(self.block_id))
-        self.stab_code = stab_code
-        self.qubits = cirq.NamedQubit.range(len(stab_code), prefix=str(self.block_id))
 
 
 
-    def add_flag_ancilla(number_of_flag):
-        self.flag_ancilla = None
 
-
+#TODO:Need bariier
 class ft_measurement:
     pass
 
-class ft_gate:
-    def __init__(self, qubit_blocks, stab_code, gate:cirq.Gate):
-        self.qubit_blocks = qubit_blocks
-        self.stab_code = stab_code
-        self.gate = gate
-
-    def apply_gate(self):
+def ft_gate(qubit_blocks:list[qubit_block], stab_code, gate:cirq.Gate):
+    def tranversal_gate():
         gates = []
-        if len(self.qubit_blocks) == 1:
-            for qubit in self.qubit_blocks[0].qubits:
-                gates.append(self.gate.on(qubit))
-        elif len(self.qubit_blocks) == 2:
-            print(self.gate.num_qubits())
+        if len(qubit_blocks) == 1:
+            for qubit in qubit_blocks[0].qubits:
+                gates.append(gate.on(qubit))
+        elif len(qubit_blocks) == 2:
+            print(gate.num_qubits())
 
-            pairs = zip(self.qubit_blocks[0].qubits, self.qubit_blocks[1].qubits)
+            pairs = zip(qubit_blocks[0].qubits, qubit_blocks[1].qubits)
             for pair in pairs:
                 print(pair[0],pair[1])
-                gates.append(self.gate.on(pair[0], pair[1]))
+                gates.append(gate.on(pair[0], pair[1]))
         return gates
 
-    def sydrome_measurement(self):
-        return None
+    def sydrome_measurements():
 
-    def correction(self):
-        return None
+        #TODO:Find a way to match in pyhthon
+        def gate_matching(gate_name,qubit,block:qubit_block):
+            if gate_name == 'X':
+                return cirq.X.controlled(1).on(block.sydrome_ancilla,qubit)
+            elif gate_name == 'Z':
+                return cirq.Z.controlled(1).on(block.sydrome_ancilla,qubit)
+            else:
+                return None
+
+        result = []
+        for block in qubit_blocks:
+            for stabilizer in stab_code:
+                result.append(cirq.H.on(block.sydrome_ancilla))
+                gates_name = list(stabilizer)
+                gates_name_and_qubit = zip(gates_name,block.qubits)
+                gates = list(map(lambda g: gate_matching(g[0], g[1], block), gates_name_and_qubit))
+                for g in gates:
+                    if g != None:
+                        result.append(g)
+                result.append(cirq.H.on(block.sydrome_ancilla))
+                result.append(cirq.measure(block.sydrome_ancilla))
+        return result
+
+
+    return [tranversal_gate(), sydrome_measurements()]
 
 
 
@@ -76,10 +88,13 @@ def encode(circuit: cirq.Circuit, stab_code):
 
             blocks = list( filter(lambda block:  is_op_target_to_encoded_qubit(block[0]), qubit_blocks))
             blocks = list(map(lambda item: item[1], blocks))
-            ft_gates = ft_gate( blocks, stab_code,op.gate).apply_gate()
-            new_circuit.append(ft_gates)
-    for q in qubit_blocks :
-        print(q[0])
+            ft_gates = ft_gate( blocks, stab_code,op.gate)
+            print(ft_gates)
+            for gate_block in ft_gates:
+                print(gate_block)
+                new_circuit.append(gate_block, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
+
+
 
     return  new_circuit
 
