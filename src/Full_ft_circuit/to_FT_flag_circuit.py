@@ -7,11 +7,13 @@ class qubit_block:
         self.sydrome_ancilla = cirq.NamedQubit(str(self.block_id)+"a")
         self.stab_code = stab_code
         self.qubits = cirq.NamedQubit.range(len(stab_code[0]), prefix=str(self.block_id))
+        self.number_of_flag_created = 0
         qubit_block.block_id += 1
 
-
-
-
+    def create_flag(self,amount_of_flag):
+        flags =cirq.NamedQubit.range(amount_of_flag, prefix=str(self.block_id-1) + "f")
+        self.number_of_flag_created += 1
+        return flags
 
 #TODO:Need bariier
 class ft_measurement:
@@ -25,14 +27,13 @@ def ft_gate(qubit_blocks:list[qubit_block], stab_code, gate:cirq.Gate):
                 gates.append(gate.on(qubit))
         elif len(qubit_blocks) == 2:
             print(gate.num_qubits())
-
             pairs = zip(qubit_blocks[0].qubits, qubit_blocks[1].qubits)
             for pair in pairs:
-                print(pair[0],pair[1])
+                print(pair[0], pair[1])
                 gates.append(gate.on(pair[0], pair[1]))
         return gates
 
-    def sydrome_measurements():
+    def sydrome_measurements(add_flag= True):
 
         #TODO:Find a way to match in pyhthon
         def gate_matching(gate_name,qubit,block:qubit_block):
@@ -50,11 +51,23 @@ def ft_gate(qubit_blocks:list[qubit_block], stab_code, gate:cirq.Gate):
                 gates_name = list(stabilizer)
                 gates_name_and_qubit = zip(gates_name,block.qubits)
                 gates = list(map(lambda g: gate_matching(g[0], g[1], block), gates_name_and_qubit))
+                flags_qubits = block.create_flag(2)
                 for g in gates:
                     if g != None:
-                        result.append(g)
+                        if add_flag:
+                            #TODO:change amount of flag
+                            for f in flags_qubits:
+                                result.append(cirq.CNOT(block.sydrome_ancilla,f))
+                            result.append(g)
+                            for f in flags_qubits:
+                                result.append(cirq.CNOT(block.sydrome_ancilla,f))
+                                result.append(cirq.measure(f))
+                        else:
+                            result.append(g)
+
                 result.append(cirq.H.on(block.sydrome_ancilla))
                 result.append(cirq.measure(block.sydrome_ancilla))
+                result.append(cirq.reset(block.sydrome_ancilla))
         return result
 
 
@@ -85,7 +98,6 @@ def encode(circuit: cirq.Circuit, stab_code):
                     return True
                 else:
                     return False
-
             blocks = list( filter(lambda block:  is_op_target_to_encoded_qubit(block[0]), qubit_blocks))
             blocks = list(map(lambda item: item[1], blocks))
             ft_gates = ft_gate( blocks, stab_code,op.gate)
