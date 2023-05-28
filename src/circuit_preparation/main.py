@@ -61,49 +61,12 @@ if __name__ == '__main__':
     #TODO:need to only add flag between
     # add a big flag
     # operation with
-    def add_flag(circuit: cirq.Circuit, number_of_flag: int, stratergy = "random") -> cirq.Circuit:
-        flag_circuit = cirq.Circuit()
-        if stratergy == "random":
-            import random
-            # a helper function to filter out moment that have Cnot
-            def is_moment_with_cnot(momnet:cirq.Moment):
-                for op in momnet.operations:
-                    if len(op.qubits) == 2:
-                        return True
-                return False
-            # a helper function that random a number_of_flag in list of moment_with_cnot:
-            def randomize_targets(moments):
-                return random.choices(moments, weights=None, cum_weights=None, k=number_of_flag)
-            # a helper_function to check if a flag should be added to a momment:
-            def should_add_flag(moment,randomized_targets):
-                for target in randomized_targets:
-                    if target == moment:
-                        return True
-                return False
-            momments_with_cnot = list( filter(lambda m: is_moment_with_cnot(m),circuit.moments))
-            targets = randomize_targets(momments_with_cnot)
-
-            for m in circuit.moments:
-                m:cirq.Moment
-                operations = m.operations
-                gate = []
-                for op in operations:
-                    op:cirq.Operation
-                    if len(op.qubits) == 2 and should_add_flag(m,targets):
-                        for g in Flag().add_flag(op):
-                            gate.append(g)
-                    else:
-                        gate.append(op)
-                flag_circuit.append(gate, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
-            return flag_circuit
-        elif stratergy == "heuristic":
-            raise NotImplemented
+    re =complier.generate_error_Circuit(circuit,2)
+    for c in re:
+        print("\n")
+        print(c)
 
 
-    flag_cir = add_flag(icm_circuit,number_of_flag=2)
-    print(icm_circuit)
-    print("\n")
-    print(flag_cir)
 
 
 
