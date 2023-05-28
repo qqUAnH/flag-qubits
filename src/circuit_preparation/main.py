@@ -21,29 +21,6 @@ class Flag:
         self.flag_qubitx = cirq.NamedQubit(str(self.number_of_flag) + "xf")
         self.flag_qubitz = cirq.NamedQubit(str(self.number_of_flag) + "zf")
         Flag.number_of_flag +=1
-    def cnot_to_flag(self,control):
-        return [cirq.CZ(self.flag_qubitz,control),cirq.CNOT(control,self.flag_qubitx)]
-
-    def add_x_flag(self,op):
-        op:cirq.Operation
-        control = op.qubits[0]
-        flag_components = []
-        flag_components.append(cirq.CNOT(control,self.flag_qubitx))
-        flag_components.append(op)
-        flag_components.append(cirq.CNOT(control,self.flag_qubitx))
-        flag_components.append(cirq.measure(self.flag_qubitx))
-        return flag_components
-    def add_z_flag(self,op):
-        op: cirq.Operation
-        target = op.qubits[1]
-        flag_components = []
-        flag_components.append(cirq.H(self.flag_qubitz))
-        flag_components.append(cirq.CNOT( self.flag_qubitz,target))
-        flag_components.append(op)
-        flag_components.append(cirq.CNOT( self.flag_qubitz,target))
-        flag_components.append(cirq.H(self.flag_qubitz))
-        flag_components.append(cirq.measure(self.flag_qubitz))
-        return flag_components
     def add_flag(self,op,only_include_x_flag = False, only_include_z_flag =False):
         op: cirq.Operation
         control = op.qubits[0]
@@ -68,6 +45,12 @@ class Flag:
         return flag_components
 
 
+
+
+
+
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     current_directory = os.getcwd()
@@ -75,6 +58,9 @@ if __name__ == '__main__':
     circuit = complier.test_circuit()
     icm_circuit = complier.decompose_to_ICM(circuit)
     icm_circuit: cirq.Circuit
+    #TODO:need to only add flag between
+    # add a big flag
+    # operation with
     def add_flag(circuit: cirq.Circuit, number_of_flag: int, stratergy = "random") -> cirq.Circuit:
         flag_circuit = cirq.Circuit()
         if stratergy == "random":
@@ -94,7 +80,6 @@ if __name__ == '__main__':
                     if target == moment:
                         return True
                 return False
-
             momments_with_cnot = list( filter(lambda m: is_moment_with_cnot(m),circuit.moments))
             targets = randomize_targets(momments_with_cnot)
 
@@ -113,6 +98,8 @@ if __name__ == '__main__':
             return flag_circuit
         elif stratergy == "heuristic":
             raise NotImplemented
+
+
     flag_cir = add_flag(icm_circuit,number_of_flag=2)
     print(icm_circuit)
     print("\n")
