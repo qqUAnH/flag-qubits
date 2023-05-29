@@ -2,6 +2,7 @@
 import cirq
 from julia.api import Julia
 import collections
+from itertools import dropwhile
 def keep_clifford_plus_T(op) -> bool:
     if isinstance(op.gate, (cirq.XPowGate,
                           cirq.YPowGate,
@@ -12,8 +13,8 @@ def keep_clifford_plus_T(op) -> bool:
                           )):
         return True
 def test_circuit():
-    q0 = cirq.LineQubit(0)
-    q1 = cirq.LineQubit(1)
+    q0 = cirq.NamedQubit('0')
+    q1 = cirq.NamedQubit('1')
     circuit = cirq.Circuit()
     circuit.append([cirq.H(q0), cirq.CNOT(q0, q1)])
     return circuit
@@ -33,7 +34,7 @@ def single_gate():
     return circuit
 
 def decompose_to_ICM(circuit):
-    json_string = cirq.to_json(circuit)
+    json_string = cirq.to_json(cirq.Circuit(cirq.decompose(circuit, keep=keep_clifford_plus_T)))
     with open("input_cirq_circuit.json", "w") as outfile:
         outfile.write(json_string)
     #j = Julia(compiled_modules=False)
@@ -41,35 +42,84 @@ def decompose_to_ICM(circuit):
     cirq_circuit = cirq.read_json("output_cirq_ICM_circuit.json")
     return cirq_circuit
 
-class Flag:
+class Flag():
     number_of_flag = 0
     def __init__(self):
         self.flag_qubitx = cirq.NamedQubit(str(self.number_of_flag) + "xf")
         self.flag_qubitz = cirq.NamedQubit(str(self.number_of_flag) + "zf")
-        Flag.number_of_flag +=1
-    def create_flag(self,op,only_include_x_flag = False, only_include_z_flag =False):
+        Flag.number_of_flag += 1
+    def create_flag(self,control,target):
         op: cirq.Operation
-        control = op.qubits[0]
-        target  = op.qubits[1]
-        #inclue two moment
-        x_flag = [cirq.Moment(cirq.CNOT(control, self.flag_qubitx)),
-                  cirq.Moment(cirq.CNOT(control, self.flag_qubitx),cirq.measure(self.flag_qubitx))]
+        x_flag = [[cirq.CNOT(control, self.flag_qubitx)],
+                  [cirq.CNOT(control, self.flag_qubitx), cirq.measure(self.flag_qubitx)]
+                  ]
 
-        z_flag = [cirq.Moment(cirq.H(self.flag_qubitz),cirq.CNOT(self.flag_qubitz, target)),
-                  cirq.Moment(cirq.CNOT(self.flag_qubitz, target),cirq.H(self.flag_qubitz),cirq.measure(self.flag_qubitz))]
-        return [x_flag,z_flag]
+        z_flag = [[cirq.H(self.flag_qubitz), cirq.CNOT(self.flag_qubitz, target)],
+                  [cirq.CNOT(self.flag_qubitz, target), cirq.H(self.flag_qubitz), cirq.measure(self.flag_qubitz)]]
+        return [x_flag, z_flag]
 
 
-def is_moment_with_cnot(momnet: cirq.Moment):
-    for op in momnet.operations:
-        if len(op.qubits) == 2:
-            return True
-    return False
+#brute force fucntion that generate error
+
 
 def add_flag(circuit: cirq.Circuit, number_of_flag: int, stratergy = "random") -> cirq.Circuit:
     flag_circuit = cirq.Circuit()
     if stratergy == "random":
         import random
+        #fix this tommorw
+        number_of_momnet = len(circuit.moments)
+        start_moments = random.choices( range(number_of_momnet), k=number_of_flag)
+
+        qubits = list(map(lambda a: random.choice(list(circuit.all_qubits())), [0]+ list(range(1,number_of_flag,1))))
+        #this is the problem
+        end_moments = []
+        for m in start_moments:
+            start_index= m
+            if m == number_of_momnet-1:
+                end_moments.append(m)
+            else:
+                end_moments.append(random.choice(range(m, number_of_momnet,1)))
+
+        #TODO:ask professor if a flag must include x and z flag:
+        flags = []
+        # no z flag and there is more flag than needed
+        for q in qubits:
+            f = Flag()
+            x_flag, z_flag = f.create_flag(q, q)
+            if random.choice([True,False]):
+                flags.append(x_flag)
+            else:
+                flags.append(z_flag)
+
+        helper1 = 0
+        helper2 = 0
+        for i ,moment in enumerate(circuit.moments):
+            added_original_moment = False
+            for n in range(number_of_flag):
+                if helper1 < number_of_flag and start_moments[n] == i:
+
+                    for g in flags[helper1][0]:
+                        flag_circuit.append(g,strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
+                    if not added_original_moment:
+                        flag_circuit.append(moment)
+                    added_original_moment = True
+                    helper1 += 1
+
+                if helper2 < number_of_flag and end_moments[n] == i:
+                    print("End")
+                    if not added_original_moment:
+                        flag_circuit.append(moment)
+                    for g in flags[helper2][1]:
+                        flag_circuit.append(g,strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
+                    added_original_moment = True
+                    helper2 += 1
+                if helper2 > helper1:
+                    print("fail")
+
+            if not added_original_moment :
+                flag_circuit.append(moment)
+        if  helper1 < number_of_flag or helper2 < number_of_flag:
+            print("fail")
         return flag_circuit
     elif stratergy == "heuristic":
         raise NotImplemented
@@ -81,8 +131,8 @@ def generate_error_Circuit(circuit: cirq.Circuit, number_of_error: int):
 
     def generate_all_error_location():
         re = []
-        qubits = circuit.all_qubits()
-        moments = circuit.moments
+        qubits = list( filter(lambda q:  not 'f' in q.name  ,circuit.all_qubits()))
+        moments = list(range( len(circuit.moments)))
         for m in moments:
             for q in qubits:
                 re.append([q, m])
@@ -90,6 +140,7 @@ def generate_error_Circuit(circuit: cirq.Circuit, number_of_error: int):
     def generate_error():
         errors = []
         generate_error_helper('', number_of_error, errors)
+        print(errors)
         return errors
     def generate_error_helper(current_string, n, strings):
         if len(current_string) == n:
@@ -106,36 +157,34 @@ def generate_error_Circuit(circuit: cirq.Circuit, number_of_error: int):
         return list(map(lambda a, b: helper(a, b[0]), errors_string, location))
 
     def add_error_moments(cir: cirq.Circuit, error_moments, location):
-        # the varible location should be in the form (qubits,momment)
+        # the varible location should be in the form (qubits,index)
         new_circuit = cirq.Circuit()
-
-
-        for m in cir.moments:
+        for index , m in enumerate(cir.moments):
             for i, l in enumerate(location):
-                if l[1] == m:
+                if l[1] == index:
                    new_circuit.append(error_moments[i])
             new_circuit.append(m,strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
         return new_circuit
-
 
     all_error_locations= generate_all_error_location()
 
     errors_string = generate_error()
     all_combination_of_error_location  = list(itertools.combinations_with_replacement(all_error_locations,number_of_error))
-    for i in all_combination_of_error_location:
-        print(i)
     all_error_circuit= []
     for e in errors_string:
         helper =map( lambda a : [create_error_moments(a[0],a[1]),a[1]]
             ,list(map( lambda l : [e,l] ,all_combination_of_error_location)))
         for i in helper:
-            all_error_circuit.append(add_error_moments(circuit,i[0],i[1]))
+            all_error_circuit.append(add_error_moments(circuit, i[0], i[1]))
 
-    print(len(all_error_circuit))
 
     return all_error_circuit
 
 
 
 
-
+def is_moment_with_cnot(momnet: cirq.Moment):
+    for op in momnet.operations:
+        if len(op.qubits) == 2:
+            return True
+    return False

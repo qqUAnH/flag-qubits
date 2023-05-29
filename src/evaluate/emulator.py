@@ -2,26 +2,11 @@
 import stim
 
 import stim
+import cirq
+import stimcirq
+from typing import Callable, Any, List, Dict
 
-simulator = stim.TableauSimulator()
 
-# THe ideas is use tableauSImulator and run part of the circuit base on this
-simulator.do(stim.Circuit("""
-    H 0
-    CNOT 0 1
-    M 0
-"""))
+simulator = stimcirq.cirq_circuit_to_stim_circuit()
 
-# Do something depending on the measurement result.
-latest_measurement_result = simulator.current_measurement_record()[-1]
-if latest_measurement_result:
-    simulator.do(stim.Circuit("""
-        # ...
-    """))
 
-# Run the rest of the circuit.
-simulator.do(stim.Circuit("""
-    
-"""))
-
-shot = simulator.current_measurement_record()
