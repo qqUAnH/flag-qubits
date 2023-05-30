@@ -8,6 +8,7 @@ import os
 import cirq
 import stim
 import stimcirq
+from src import circuit_preparation
 from src.circuit_preparation import complier
 
 
@@ -16,10 +17,11 @@ from src.circuit_preparation import complier
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    c = complier.Flag_complier()
     current_directory = os.getcwd()
     new_directory = '/path/to/new_directory'
-    circuit = complier.toffoli()
-    icm_circuit = complier.decompose_to_ICM(circuit)
+    circuit = c.toffoli()
+    icm_circuit = c.decompose_to_ICM(circuit)
     icm_circuit: cirq.Circuit
     #TODO:need to only add flag between
     # add a big flag
@@ -33,26 +35,20 @@ if __name__ == '__main__':
             print(simulator.current_inverse_tableau())
             return simulator.canonical_stabilizers()[0]
         def sampleing():
-            for error_circuit in complier.generate_error_Circuit(cir,1):
+            for error_circuit in c.generate_error_Circuit(cir,1):
                 simulator = stim.TableauSimulator()
-                flag_circuit = complier.add_flag(icm_circuit, 2)
+                flag_circuit = c.add_flag(icm_circuit, 2)
                 stim_circuit = stimcirq.cirq_circuit_to_stim_circuit(flag_circuit)
                 simulator.do_circuit(stim_circuit)
 
                 return simulator.canonical_stabilizers()
         get_correct_stabilizer_state()
-
-    f = complier.add_flag(complier.test_circuit(),2)
-    ec = complier.generate_error_Circuit(f,1)
-    print(complier.test_circuit())
-    correctness= True
+    print(c.test_circuit())
+    f = c.add_flag(c.test_circuit(),1)
     print(f)
-    for e in ec:
-        print("\n")
-        print(e)
-
-    if not correctness :
-        print("Afd")
+    for i in range(2):
+        f = c.add_flag(icm_circuit, 2)
+        print(f)
 
 
 
