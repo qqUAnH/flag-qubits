@@ -37,11 +37,16 @@ class Flag_complier():
                               cirq.SwapPowGate
                               )):
             return True
+    #
     def test_circuit(self):
         q0 = cirq.NamedQubit('0')
         q1 = cirq.NamedQubit('1')
+        q2 = cirq.NamedQubit('2')
         circuit = cirq.Circuit()
-        circuit.append([cirq.H(q0), cirq.CNOT(q0, q1)])
+        circuit.append( cirq.CNOT(q0, q1))
+        circuit.append(cirq.CNOT(q1, q2))
+        print("this circuit should have 10 place where error can propagate")
+        print(circuit)
         return circuit
 
     def toffoli(self):
@@ -60,11 +65,11 @@ class Flag_complier():
 
     def decompose_to_ICM(self,circuit):
         json_string = cirq.to_json(cirq.Circuit(cirq.decompose(circuit, keep=self.keep_clifford_plus_T)))
-        with open("../evaluate/input_cirq_circuit.json", "w") as outfile:
+        with open("input_cirq_circuit.json", "w") as outfile:
             outfile.write(json_string)
         #j = Julia(compiled_modules=False)
         #j.eval(open("/home/quan-hoang/PycharmProjects/flag-qubits/src/circuit_preparation/icm_converter.jl").read())
-        cirq_circuit = cirq.read_json("../evaluate/output_cirq_ICM_circuit.json")
+        cirq_circuit = cirq.read_json("output_cirq_ICM_circuit.json")
         return cirq_circuit
     def __is_moment_with_cnot__(self,momnet: cirq.Moment):
         for op in momnet.operations:
@@ -80,33 +85,49 @@ class Flag_complier():
 
         control_qbits = []
         target_qbits = []
+        x_start_moments = []
+        x_end_momemts = []
         x_end_moments = []
         z_end_moments = []
 
         if stratergy == "random":
             import random
-            random_moments_with_cnot_and_index = random.choices( list(filter(lambda a: self.__is_moment_with_cnot__(a[0]), moments_with_index)) , k =number_of_flag)
-            moments_with_cnot = list(map(lambda a: a[0], random_moments_with_cnot_and_index))
+            def random_moments_with_cnot_and_index():
+
+                return list(random.choices(list(filter(lambda a: self.__is_moment_with_cnot__(a[0]), moments_with_index)) , k =number_of_flag))
+            x_random_moments_with_cnot = random_moments_with_cnot_and_index()
+            z_random_moments_with_cnot = random_moments_with_cnot_and_index()
+
+            x_start_moments = list(map(lambda a: a[1], x_random_moments_with_cnot))
+            z_start_moments = list(map(lambda a: a[1], z_random_moments_with_cnot))
+            z_random_moments_with_cnot = list(map(lambda a: a[0], z_random_moments_with_cnot))
+            x_random_moments_with_cnot = list(map(lambda a: a[0], x_random_moments_with_cnot))
             # the first half of flags will be inserted before these moments
-            index_start_moments = list(map(lambda a: a[1], random_moments_with_cnot_and_index))
-            print(index_start_moments)
             # could be change here
-            for i, m in zip(index_start_moments, moments_with_cnot):
+            for x,z,mx,mz in zip(x_start_moments,z_start_moments, x_random_moments_with_cnot,z_random_moments_with_cnot):
                 m:cirq.Moment
+                print(x)
+                print(z)
+                print(mx)
+                print(mz)
                 # randomize end moment
-                if i == number_of_momnet -1 :
-                    x_end_moments.append(i)
-                    z_end_moments.append(i)
+                if x == number_of_momnet -1 :
+                    x_end_moments.append(x)
                 else:
-                    x_end_moments.append(random.choice(range(i, number_of_momnet, 1)))
-                    z_end_moments.append(random.choice(range(i, number_of_momnet, 1)))
-                # since icm circuit have max one cnot a time:
-                for op in m.operations:
-                    print(op)
+                    x_end_moments.append(random.choice(range(x, number_of_momnet, 1)))
+                if z == number_of_momnet -1 :
+                    z_end_moments.append(z)
+                else:
+                    z_end_moments.append(random.choice(range(z, number_of_momnet, 1)))
+
+                for op in mx.operations:
                     if len(list(op.qubits)) == 2:
                         control_qbits.append(op.qubits[0])
                         target_qbits.append(op.qubits[1])
-
+                for op in mz.operations:
+                    if len(list(op.qubits)) == 2:
+                        control_qbits.append(op.qubits[0])
+                        target_qbits.append(op.qubits[1])
 
             # TODO:ask professor if a flag must include x and z flag:
             x_flags = []
@@ -114,9 +135,7 @@ class Flag_complier():
 
             # no z flag and there is more flag than needed
             for c, t in zip(control_qbits, target_qbits):
-                print("a")
-                print(c)
-                print(t)
+
                 f = Flag()
                 x_flag, z_flag = f.create_flag(c, t)
                 x_flags.append(x_flag)
@@ -129,16 +148,15 @@ class Flag_complier():
 
 
             for index, current_moment in enumerate(circuit.moments):
-
                 for n in range(number_of_flag):
                     #the problem is we already added the moments
-                    if helper0x < number_of_flag and index_start_moments[n] == index:
+                    if helper0x < number_of_flag and x_start_moments[n] == index:
                         for g in x_flags[helper0x][0]:
                             flag_circuit.append(g, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
                         added_original_moment = True
                         helper0x += 1
 
-                    if helper0z < number_of_flag and index_start_moments[n] == index:
+                    if helper0z < number_of_flag and z_start_moments[n] == index:
                         for g in z_flags[helper0z][0]:
                             flag_circuit.append(g, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
                         added_original_moment = True
@@ -157,14 +175,10 @@ class Flag_complier():
                             flag_circuit.append(g, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
                         added_original_moment = True
                         helper1z += 1
-
                     if helper1x > helper0x or helper1z > helper0z:
                         print("fail")
 
-
-
             return flag_circuit
-
         elif stratergy == "heuristic":
             raise NotImplemented
 
