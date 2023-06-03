@@ -1,6 +1,45 @@
 import cirq
 import  itertools
 from typing import List
+import numpy as np
+
+
+
+
+class X_error(cirq.Gate):
+    def __init__(self):
+        super().__init__()
+    def num_qubits(self) -> int:
+        return 1
+    def _circuit_diagram_info_(self, args):
+        return "x_error"
+
+    def _unitary_(self):
+        return np.array([
+            [0,1],
+            [1,0]
+        ])
+
+    def validate_args(self,qubit):
+        pass
+
+
+class Z_error(cirq.Gate):
+    def __init__(self):
+        super().__init__()
+    def num_qubits(self) -> int:
+        return 1
+    def _circuit_diagram_info_(self, args):
+        return "z_error"
+
+    def _unitary_(self):
+        return np.array([
+            [1,0],
+            [0,-1]
+        ])
+
+    def validate_args(self,qubit):
+        pass
 
 #TODO:replace this with itertools
 
@@ -14,67 +53,34 @@ class error_location():
 #this is quite problem matric
 def generate_error_string(number_of_error):
     errors = list(itertools.product('xz', repeat=number_of_error))
-
     return errors
-
-def generate_all_error_location(circuit):
-    re = []
-    qubits = list( filter(lambda q:  not 'f' in q.name  ,circuit.all_qubits()))
-    def is_moment_with_flag(m:cirq.Moment) :
-        re = False
-        for op in m.operations:
-            op:cirq.Operation
-            for q in op.qubits:
-                q :cirq.NamedQubit
-                if 'f' in q.name:
-                    re = True
-        return re
-    for index, m in enumerate(circuit.moments):
-        if not is_moment_with_flag(m):
-            for q in qubits:
-                re.append([q, index])
-    return re
-
-def create_error_moments(errors_string,location):
-    def helper(error_char,qubit):
-        if error_char == 'x':
-            return cirq.Moment(cirq.X(qubit))
-        elif error_char == 'z':
-            return cirq.Moment(cirq.Z(qubit))
-    return list(map(lambda a, b: helper(a, b[0]), errors_string, location))
 
 #THis is a refactored function for create_error_moments:
 def error_at_moments(errors_string,location:List[error_location]):
     def helper(error_char,qubit):
         if error_char == 'x':
-            return cirq.Moment(cirq.X(qubit))
+            x_error_gate = X_error()
+            x_error_op = x_error_gate.on(qubit)
+            moment = cirq.Moment(x_error_op)
+            return moment
         elif error_char == 'z':
-            return cirq.Moment(cirq.Z(qubit))
-    return list(map(lambda a, b: helper(a, b.qubit), errors_string, location))
+            z_error_gate = Z_error()
+            z_error_op = z_error_gate.on(qubit)
+            moment = cirq.Moment(z_error_op)
+            return moment
+    def helper2(error_char,qubit):
+        if error_char == 'x':
+            x_error_gate = cirq.X
+            x_error_op = x_error_gate.on(qubit)
+            moment = cirq.Moment(x_error_op)
+            return moment
+        elif error_char == 'z':
+            z_error_gate = cirq.Z
+            z_error_op = z_error_gate.on(qubit)
+            moment = cirq.Moment(z_error_op)
+            return moment
+    return [list(map(lambda a, b: helper(a, b.qubit), errors_string, location)), list(map(lambda a, b: helper2(a, b.qubit), errors_string, location))]
 
-
-def generate_random_error_Circuit(circuit: cirq.Circuit, number_of_error: int):
-    def add_error_moments(cir: cirq.Circuit, error_moments, location):
-        # the varible location should be in the form (qubits,index)
-        new_circuit = cirq.Circuit()
-        for index , m in enumerate(cir.moments):
-            for i, l in enumerate(location):
-                if l[1] == index:
-                   new_circuit.append(error_moments[i])
-            new_circuit.append(m,strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
-        return new_circuit
-
-    all_error_locations = generate_all_error_location(circuit)
-
-    errors_string = generate_error_string(number_of_error)
-    all_combination_of_error_location  = list(itertools.combinations_with_replacement(all_error_locations,number_of_error))
-    all_error_circuit= []
-    for e in errors_string:
-        helper =map( lambda a : [create_error_moments(a[0],a[1]),a[1]]
-            ,list(map( lambda l : [e,l] ,all_combination_of_error_location)))
-        for i in helper:
-            all_error_circuit.append(add_error_moments(circuit, i[0], i[1]))
-    return all_error_circuit
 
 
 def generate_input_error(circuit:cirq.Circuit,number_of_error:int, stratergy="all"):
@@ -83,19 +89,42 @@ def generate_input_error(circuit:cirq.Circuit,number_of_error:int, stratergy="al
     locations = list(map( lambda q: error_location(q, 0), qubits))
     combination_of_locations = list(itertools.combinations_with_replacement(list(locations), number_of_error))
     error_string = generate_error_string(number_of_error)
-
     #should replace this with map
     if stratergy == "all":
         for e in error_string:
             for cl in combination_of_locations:
+                # ERROR_CIR AND ERROR CI2 IS basically the same
                 error_cir = cirq.Circuit()
-                for m in error_at_moments(e,cl):
+                error_cir2 = cirq.Circuit()
+                error1, error2 =error_at_moments(e,cl)
+                for m in error1:
                     error_cir.append(m)
-                result.append(error_cir+circuit)
+                for m in error2:
+                    error_cir2.append(m)
+
+                result.append([error_cir+circuit, error_cir2+circuit])
     return result
 
 
 
+def generate_error_circuit(circuit:cirq.Circuit,number_of_error:int):
+    result = []
+    moments = list(circuit.moments)
+    for i in range(len(moments)):
+        #we divide the moment into two part
+        first_part = moments[:i]
+        second_part = moments[-len(moments)+i:]
+
+        circuit1 = cirq.Circuit()
+        circuit1.append(first_part)
+
+        circuit2 = cirq.Circuit()
+        circuit2.append(second_part)
+        circuit2 = generate_input_error(circuit2,number_of_error)
+
+        for c in circuit2:
+            result.append([circuit1+c[0],circuit1+c[1]])
+    return result
 
 
 

@@ -30,16 +30,15 @@ if __name__ == '__main__':
     c = complier.Flag_complier()
     current_directory = os.getcwd()
     new_directory = '/path/to/new_directory'
-    circuit = c.toffoli()
+    circuit = c.test_circuit()
     icm_circuit = c.decompose_to_ICM(circuit)
     icm_circuit: cirq.Circuit
     #TODO:need to only add flag between
     # add a big flag
     # operation with
-    f_cir =c.add_flag(c.test_circuit(),1)
+    f_cir =c.add_flag(icm_circuit,stratergy="heuristic")
     print(f_cir)
 
-    evaluate.evaluate_flag_circuit(f_cir,1,0)
 
 
 

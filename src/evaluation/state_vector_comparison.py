@@ -14,7 +14,7 @@ def expected_state_vector(circuit:cirq.Circuit):
     simulator = stim.TableauSimulator()
     simulator.do_circuit(stim_circuit)
     return simulator.state_vector()
-
+#should do st that help me visualize
 def possible_state_vector(circuit:cirq.Circuit,number_of_error:int):
     result = []
     identity_matrix = np.eye(2)
@@ -22,11 +22,12 @@ def possible_state_vector(circuit:cirq.Circuit,number_of_error:int):
               [1,0]]
     Pauli_z=[[1,0],
              [0,-1]]
-    #the flag always zeros or 1 => no phase error on flag
     correct_state_vector = expected_state_vector(circuit)
     possible_error_string = []
     for n in range(number_of_error+1):
-        possible_error_string += error_circuit.generate_input_error(circuit,number_of_error)
+        possible_error_string += error_circuit.generate_error_string(n)
+        print(possible_error_string)
+
     qubits = list(circuit.all_qubits())
     flag_qubits = list(filter(lambda q: 'f'  in q.name,qubits))
     number_of_qubits = len(qubits)
@@ -39,20 +40,13 @@ def possible_state_vector(circuit:cirq.Circuit,number_of_error:int):
             for index, error_char in zip(l, e) :
                 q = qubits[index]
                 q:cirq.NamedQubit
-                print("------")
                 if error_char == "x":
                     helper[index] = Pauli_x
                 elif qubits[index] not in flag_qubits:
                     helper[index] = Pauli_z
-                #else:
-                    #print(e)
-                    #print(qubits[index])
-
-            #for o in helper:
-               #print(o)
-            #print("-----------------------------------------")
             error_matrix = reduce(lambda a, b: np.kron(a, b), helper)
             result.append(np.dot(error_matrix, correct_state_vector))
+    result.append(correct_state_vector)
     return result
 
 
