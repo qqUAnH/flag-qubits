@@ -26,14 +26,10 @@ def possible_state_vector(circuit:cirq.Circuit,number_of_error:int):
     possible_error_string = []
     for n in range(number_of_error+1):
         possible_error_string += error_circuit.generate_error_string(n)
-        print(possible_error_string)
-
     qubits = list(circuit.all_qubits())
     flag_qubits = list(filter(lambda q: 'f'  in q.name,qubits))
     number_of_qubits = len(qubits)
     locations = list(itertools.combinations_with_replacement(range(number_of_qubits),number_of_error))
-
-    del possible_error_string[0]
     for l in locations :
         for e in possible_error_string:
             helper = list(map(lambda n: identity_matrix ,range(number_of_qubits)))

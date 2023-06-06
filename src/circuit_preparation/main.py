@@ -19,6 +19,7 @@ import stimcirq
 from src import circuit_preparation
 from src.circuit_preparation import complier ,error_circuit
 from src.evaluation import evaluate
+from error_map import Error_Map
 
 
 
@@ -36,8 +37,15 @@ if __name__ == '__main__':
     #TODO:need to only add flag between
     # add a big flag
     # operation with
-    f_cir =c.add_flag(icm_circuit,stratergy="heuristic")
+    #why total case varies : fix number of total case
+    f_cir =c.add_flag(icm_circuit,stratergy="map")
+    #f_cir =c.add_flag(icm_circuit,stratergy="heuristic")
     print(f_cir)
+    #WHy the fuck did the result vary ?
+    print("number_of_qubits="+str(len(f_cir.all_qubits())))
+    evaluate.evaluate_flag_circuit(f_cir,2)
+
+
 
 
 

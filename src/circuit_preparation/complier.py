@@ -3,6 +3,7 @@ import cirq
 from julia.api import Julia
 import collections
 from itertools import dropwhile
+from error_map import Error_Map
 
 
 class Flag():
@@ -13,15 +14,17 @@ class Flag():
         self.flag_qubitz = cirq.NamedQubit(str(self.number_of_flag) + "zf")
         Flag.number_of_flag += 1
 
-    def create_flag(self, control, target):
-        op: cirq.Operation
+    def create_x_flag(self, control):
         x_flag = [[cirq.CNOT(control, self.flag_qubitx)],
                   [cirq.CNOT(control, self.flag_qubitx), cirq.measure(self.flag_qubitx)]
                   ]
-
+        return x_flag
+    #fix bug her
+    def create_z_flag(self, target):
         z_flag = [[cirq.H(self.flag_qubitz), cirq.CNOT(self.flag_qubitz, target)],
                   [cirq.CNOT(self.flag_qubitz, target), cirq.H(self.flag_qubitz), cirq.measure(self.flag_qubitz)]]
-        return [x_flag, z_flag]
+        return z_flag
+
 
 
 
@@ -44,7 +47,7 @@ class Flag_complier():
         circuit.append([cirq.H(q0), cirq.CNOT(q0, q1)])
         circuit.append(cirq.CNOT(q1, q2))
         circuit.append(cirq.CNOT(q0, q3))
-        circuit.append(cirq.CNOT(q3, q2))
+        circuit.append(cirq.CNOT(q1, q2))
         print("this circuit should have 10 place where error can propagate")
         print(circuit)
 
@@ -58,10 +61,13 @@ class Flag_complier():
 
         return ct_circuit
 
-    def single_gate(self):
-        q0 = cirq.LineQubit(0)
+    def test_circuit2(self):
+        qf , q1 ,q2 ,q3 = [cirq.LineQubit(i) for i in range(4)]
         circuit = cirq.Circuit()
-        circuit.append([cirq.H(q0), cirq.X(q0)])
+        circuit.append([cirq.H(q1), cirq.CNOT(q1,q2)])
+        circuit.append(cirq.CNOT(q1,q3))
+        circuit.append(cirq.CNOT(q1,q2))
+
         return circuit
 
     def decompose_to_ICM(self,circuit):
@@ -111,7 +117,6 @@ class Flag_complier():
                 for op in mx.operations:
                     if len(list(op.qubits)) == 2:
                         control_qbits.append(op.qubits[0])
-                        target_qbits.append(op.qubits[1])
 
             for z, mz in zip(z_start_moments, z_random_moments_with_cnot):
                 m: cirq.Moment
@@ -121,7 +126,6 @@ class Flag_complier():
                     z_end_moments.append(random.choice(range(z, number_of_momnet, 1)))
                 for op in mz.operations:
                     if len(list(op.qubits)) == 2:
-                        control_qbits.append(op.qubits[0])
                         target_qbits.append(op.qubits[1])
         elif stratergy == "heuristic":
             #Brute force:D or i could do it better?
@@ -152,17 +156,24 @@ class Flag_complier():
                     z_start_moments.append(z_gatherer[0])
                     z_end_moments.append(z_gatherer[-1])
                     target_qbits.append(qubits)
+        elif stratergy == "map":
+            helper =moments_with_cnot_and_index[0][1]
+            x_map, z_map = Error_Map(circuit).create_map()
+            control_qbits = [key[0] for key, value in x_map.items() if len(value) > 1]
+            target_qbits  = [key[0] for key, value in z_map.items() if len(value) > 1]
+            x_start_moments = list(map(lambda a:helper,control_qbits))
+            z_start_moments = list(map(lambda a:helper,target_qbits))
+            x_end_moments = [(key[1]+helper) for key, value in x_map.items() if len(value) > 1]
+            z_end_moments = [(key[1]+helper) for key, value in z_map.items() if len(value) > 1]
 
         x_flags = []
         z_flags = []
-
-        # no z flag and there is more flag than needed
-        for c, t in zip(control_qbits, target_qbits):
+        for control in control_qbits:
             f = Flag()
-            x_flag, z_flag = f.create_flag(c, t)
-            x_flags.append(x_flag)
-            z_flags.append(z_flag)
-
+            x_flags.append(f.create_x_flag(control))
+        for target in target_qbits:
+            f = Flag()
+            z_flags.append(f.create_z_flag(target))
         helper0x = 0
         helper0z = 0
         helper1x = 0
@@ -170,7 +181,6 @@ class Flag_complier():
         #
         number_of_x_flag = len(x_start_moments)
         number_of_z_flag = len(z_start_moments)
-
         for index, current_moment in enumerate(circuit.moments):
             for n in range(number_of_x_flag):
                 if helper0x < number_of_x_flag and x_start_moments[n] == index:

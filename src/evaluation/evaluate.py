@@ -14,12 +14,17 @@ def evaluate_flag_circuit(flag_circuit, maximum_number_of_error):
     number_fail_case = 0
     number_success_case = 0
     number_of_fail_alarm = 0
+    number_of_time_error_propagate = 0
     correct_state = state_vector_comparison.expected_state_vector(flag_circuit)
+    #there could be an error in test kit
     test_kit = state_vector_comparison.possible_state_vector(flag_circuit, maximum_number_of_error)
-    for number_of_error in range(maximum_number_of_error+1):
+    error_range=list(range(maximum_number_of_error+1))
+    del error_range[0]
+    for number_of_error in error_range:
         #error_circuits = error_circuit.generate_input_error(flag_circuit, number_of_error)
         error_circuits = error_circuit.generate_error_circuit(flag_circuit, number_of_error)
         total_case = total_case + len(error_circuits)
+        #run this in parallel
         for cirq_circuit in error_circuits:
             print("\n")
             print(cirq_circuit[0])
@@ -30,6 +35,7 @@ def evaluate_flag_circuit(flag_circuit, maximum_number_of_error):
             flag_measurement = simulator.current_measurement_record()
             print(flag_measurement)
             if state_vector_comparison.have_error_propagated(final_state, test_kit):
+                number_of_time_error_propagate += 1
                 if True in flag_measurement:
                     number_success_case += 1
                     print("flags successfully catch error")
@@ -41,12 +47,12 @@ def evaluate_flag_circuit(flag_circuit, maximum_number_of_error):
                     number_of_fail_alarm += 1
                     print("Error didn't propagated , but the flag raise a fail alarm")
                 else:
-                    number_success_case += 1
                     print("Error didn't propagated ")
-    print("total case" + str(total_case))
-    print("number of time flag fail to catch error:"+str(number_fail_case))
-    print("number of time flag successfully catch error:"+str(number_success_case))
-    print("number of fail alarm:"+str(number_of_fail_alarm))
+    print("total case:" + str(total_case))
+    print("number of time error propagate into higher weigh error:"+str(number_of_time_error_propagate))
+    print("number of time flag fail :(flags return trivial measurement, but error propagated into higher weight error)"+str(number_fail_case))
+    print("number of time flag success:"+str(number_success_case))
+    print("number of fail alarm (error propagated into error with lower or the same weight) :"+str(number_of_fail_alarm))
     print(state_vector_comparison.have_error_propagated(correct_state,test_kit))
 
 

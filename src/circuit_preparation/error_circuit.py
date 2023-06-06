@@ -85,11 +85,22 @@ def error_at_moments(errors_string,location:List[error_location]):
 
 def generate_input_error(circuit:cirq.Circuit,number_of_error:int, stratergy="all"):
     result = []
-    qubits = list(filter(lambda q:  'f' not in q.name, circuit.all_qubits()))
+    def next_to_a_flag(cir):
+        helper =cir.moments[0].operations[0].qubits
+        for q in helper:
+            q:cirq.NamedQubit
+            if 'f' in q.name:
+                return True
+        return False
+    qubits = list(filter(lambda q: 'f' not in q.name, circuit.all_qubits()))
+
+    if next_to_a_flag(circuit):
+        qubits = []
     locations = list(map( lambda q: error_location(q, 0), qubits))
+    #location should always be 4
+    print(qubits)
     combination_of_locations = list(itertools.combinations_with_replacement(list(locations), number_of_error))
     error_string = generate_error_string(number_of_error)
-    #should replace this with map
     if stratergy == "all":
         for e in error_string:
             for cl in combination_of_locations:
@@ -101,15 +112,23 @@ def generate_input_error(circuit:cirq.Circuit,number_of_error:int, stratergy="al
                     error_cir.append(m)
                 for m in error2:
                     error_cir2.append(m)
-
                 result.append([error_cir+circuit, error_cir2+circuit])
     return result
-
 
 
 def generate_error_circuit(circuit:cirq.Circuit,number_of_error:int):
     result = []
     moments = list(circuit.moments)
+    def next_to_a_flag(cir):
+        def next_to_a_flag(cir):
+            print(cir)
+            helper = cir.moments[0].operations[0].qubits
+            for q in helper:
+                q: cirq.NamedQubit
+                if 'f' in q.name:
+                    return True
+            return False
+
     for i in range(len(moments)):
         #we divide the moment into two part
         first_part = moments[:i]
@@ -120,10 +139,12 @@ def generate_error_circuit(circuit:cirq.Circuit,number_of_error:int):
 
         circuit2 = cirq.Circuit()
         circuit2.append(second_part)
-        circuit2 = generate_input_error(circuit2,number_of_error)
-
-        for c in circuit2:
-            result.append([circuit1+c[0],circuit1+c[1]])
+        print(circuit2)
+        #should I make some change so there will be more errors
+        if not next_to_a_flag(circuit2):
+            circuit2 = generate_input_error(circuit2,number_of_error)
+            for c in circuit2:
+                result.append([circuit1+c[0],circuit1+c[1]])
     return result
 
 

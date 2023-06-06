@@ -97,7 +97,7 @@
           "qubits": [
             {
               "cirq_type": "LineQubit",
-              "x": 3
+              "x": 1
             },
             {
               "cirq_type": "LineQubit",
