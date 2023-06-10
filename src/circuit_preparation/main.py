@@ -53,14 +53,13 @@ if __name__ == '__main__':
     #f_cir =c.add_flag(icm_circuit,number_of_x_flag=3,number_of_z_flag=3)
     print(icm_circuit)
     f_cir =c.add_flag(icm_circuit,stratergy="map")
+    #f_cir =c.add_flag(icm_circuit,stratergy="heuristic")
     print("\n")
     print(f_cir)
     print("\n")
     #print("number_of_qubits="+str(len(f_cir.all_qubits())))
+    Error_Map(icm_circuit).create_map_2(max_error=4)
 
-    Error_Map(icm_circuit).create_map()
-    for number_of_error in [1]:
-        evaluate.evaluate_flag_circuit(f_cir,number_of_error)
     #test = []
 
 

@@ -26,7 +26,7 @@ def possible_state_vector(circuit:cirq.Circuit,number_of_error:int):
     possible_error_string = []
     for n in range(number_of_error+1):
         possible_error_string += error_circuit.generate_error_string(n)
-    print(possible_error_string)
+
     qubits = list(circuit.all_qubits())
     number_of_qubits = len(qubits)
     flag_qubits = list(filter(lambda q: 'f'  in q.name,qubits))
@@ -47,7 +47,7 @@ def possible_state_vector(circuit:cirq.Circuit,number_of_error:int):
             simulator.do_circuit(stim_circuit)
             final_state = simulator.state_vector()
             result.append(final_state)
-    print(len(result))
+
     result.append(correct_state_vector)
     return result
 

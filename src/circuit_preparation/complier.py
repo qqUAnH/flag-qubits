@@ -175,8 +175,6 @@ class Flag_complier():
             x_end_moments = [(key[1]+helper) for key, value in x_map.items() if len(value) > 1]
             z_end_moments = [(key[1]+helper) for key, value in z_map.items() if len(value) > 1]
             for q,m in zip(control_qbits,x_end_moments):
-                print(q,m)
-                print("begin")
                 m:cirq.Moment
                 cnot_on_this = list(filter(lambda m:q == m[0].operations[0].qubits[0],moments_with_cnot_and_index))
                 cnot_on_this = list(map(lambda m:m[1],cnot_on_this))
@@ -185,10 +183,19 @@ class Flag_complier():
                     x_start_moments.append(0)
                 else:
                     x_start_moments.append(cnot_on_this[current_index-1])
-            z_start_moments = list(map(lambda a: 0, target_qbits))
-
-            print(control_qbits)
-            print(x_end_moments)
+            for q,m in zip(target_qbits,x_end_moments):
+                m:cirq.Moment
+                cnot_on_this = list(filter(lambda m:q == m[0].operations[0].qubits[1],moments_with_cnot_and_index))
+                cnot_on_this = list(map(lambda m:m[1],cnot_on_this))
+                print(q)
+                print(cnot_on_this)
+                current_index = cnot_on_this.index(m)
+                if current_index == 0:
+                    z_start_moments.append(0)
+                else:
+                    z_start_moments.append(cnot_on_this[current_index-1])
+            print("aaa")
+            print(z_start_moments)
         x_flags = []
         z_flags = []
         for control in control_qbits:
@@ -221,12 +228,9 @@ class Flag_complier():
 
             for n in range(number_of_x_flag):
                 if helper1x < number_of_x_flag and x_end_moments[n] == index:
-                    print(index)
-                    print(n)
                     for g in x_flags[n][1]:
                         flag_circuit.append(g, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
                     helper1x += 1
-                    print(flag_circuit)
 
             for n in range(number_of_z_flag):
                 if helper1z < number_of_z_flag and z_end_moments[n] == index:

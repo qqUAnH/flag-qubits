@@ -28,7 +28,7 @@ def evaluate_flag_circuit(flag_circuit, maximum_number_of_error):
         #run this in parallel
         for cirq_circuit in error_circuits:
             print("\n")
-            print(cirq_circuit[0])
+            #print(cirq_circuit[0])
             #for some reason it alwasy return trivival measuament
             simulator = stim.TableauSimulator()
             stim_circuit = stimcirq.cirq_circuit_to_stim_circuit(cirq_circuit[1])
