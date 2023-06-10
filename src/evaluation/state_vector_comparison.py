@@ -26,22 +26,28 @@ def possible_state_vector(circuit:cirq.Circuit,number_of_error:int):
     possible_error_string = []
     for n in range(number_of_error+1):
         possible_error_string += error_circuit.generate_error_string(n)
+    print(possible_error_string)
     qubits = list(circuit.all_qubits())
-    flag_qubits = list(filter(lambda q: 'f'  in q.name,qubits))
     number_of_qubits = len(qubits)
-    locations = list(itertools.combinations_with_replacement(range(number_of_qubits),number_of_error))
+    flag_qubits = list(filter(lambda q: 'f'  in q.name,qubits))
+    original_qubits = list(filter(lambda q: 'f' not in q.name,qubits))
+    locations = list(itertools.combinations_with_replacement(original_qubits,number_of_error))
+    # can be changed
     for l in locations :
         for e in possible_error_string:
-            helper = list(map(lambda n: identity_matrix ,range(number_of_qubits)))
-            for index, error_char in zip(l, e) :
-                q = qubits[index]
+            helper = circuit.copy()
+            for q, error_char in zip(l, e) :
                 q:cirq.NamedQubit
                 if error_char == "x":
-                    helper[index] = Pauli_x
-                elif qubits[index] not in flag_qubits:
-                    helper[index] = Pauli_z
-            error_matrix = reduce(lambda a, b: np.kron(a, b), helper)
-            result.append(np.dot(error_matrix, correct_state_vector))
+                    helper.append(cirq.X(q))
+                else:
+                    helper.append(cirq.Z(q))
+            simulator = stim.TableauSimulator()
+            stim_circuit = stimcirq.cirq_circuit_to_stim_circuit(helper)
+            simulator.do_circuit(stim_circuit)
+            final_state = simulator.state_vector()
+            result.append(final_state)
+    print(len(result))
     result.append(correct_state_vector)
     return result
 

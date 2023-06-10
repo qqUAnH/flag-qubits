@@ -98,7 +98,6 @@ def generate_input_error(circuit:cirq.Circuit,number_of_error:int, stratergy="al
         qubits = []
     locations = list(map( lambda q: error_location(q, 0), qubits))
     #location should always be 4
-    print(qubits)
     combination_of_locations = list(itertools.combinations_with_replacement(list(locations), number_of_error))
     error_string = generate_error_string(number_of_error)
     if stratergy == "all":
@@ -120,14 +119,13 @@ def generate_error_circuit(circuit:cirq.Circuit,number_of_error:int):
     result = []
     moments = list(circuit.moments)
     def next_to_a_flag(cir):
-        def next_to_a_flag(cir):
-            print(cir)
-            helper = cir.moments[0].operations[0].qubits
-            for q in helper:
-                q: cirq.NamedQubit
-                if 'f' in q.name:
-                    return True
-            return False
+        print(cir)
+        helper = cir.moments[0].operations[0].qubits
+        for q in helper:
+            q: cirq.NamedQubit
+            if 'f' in q.name:
+                return True
+        return False
 
     for i in range(len(moments)):
         #we divide the moment into two part
@@ -139,7 +137,6 @@ def generate_error_circuit(circuit:cirq.Circuit,number_of_error:int):
 
         circuit2 = cirq.Circuit()
         circuit2.append(second_part)
-        print(circuit2)
         #should I make some change so there will be more errors
         if not next_to_a_flag(circuit2):
             circuit2 = generate_input_error(circuit2,number_of_error)

@@ -19,10 +19,14 @@ class Error_Map():
     def create_map(self):
         #THere is a problem with index
         self.moment_with_cnot.reverse()
+        # take len(moment) step
+        distinct_x_error = []
+        distinct_z_error = []
         for i,moment in enumerate(self.moment_with_cnot):
             index = self.map_size-i-1
             moment:cirq.Moment
             control, target = moment.operations[0].qubits
+            #take len(qubits) step
             for qubit in self.qubits:
                 qubit:cirq.NamedQubit
                 control:cirq.NamedQubit
@@ -32,20 +36,23 @@ class Error_Map():
                 propagated_z_error = [(qubit,index+1)]
 
                 if control == qubit:
+                    distinct_x_error.append(tuple(original_error))
                     propagated_x_error.append((target,index+1))
                 elif target == qubit:
+                    distinct_z_error.append(tuple(original_error))
                     propagated_z_error.append((control,index+1))
 
                 # we will query the dictionary to get the results
                 helper1 = propagated_x_error
                 helper2 = propagated_z_error
+
                 if not index+1 == self.map_size:
                     propagated_x_error = []
-                    propagated_z_error =[]
+                    propagated_z_error = []
                     for i,error in enumerate(helper1):
                         for e in self.X_map[tuple(error)]:
                             propagated_x_error.append(e)
-                    for i,error in enumerate(propagated_z_error):
+                    for i,error in enumerate(helper2):
                         for e in self.Z_map[tuple(error)]:
                             propagated_z_error.append(e)
 
@@ -57,8 +64,16 @@ class Error_Map():
                 self.Z_map[tuple(original_error)] = propagated_z_error
             print("")
             print("current map:")
-            for key,val in self.X_map.items():
-                print(key[1],val)
+
+        for key,val in self.X_map.copy().items():
+            if key not in distinct_x_error:
+                del self.X_map[key]
+        for key,val in self.Z_map.copy().items():
+            if key not in distinct_z_error:
+                del self.Z_map[key]
+
+        for key,val in self.X_map.items():
+            print("moments:",key[1],val)
         return [self.X_map,self.Z_map]
 
 

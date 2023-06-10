@@ -16,13 +16,15 @@ class Flag():
 
     def create_x_flag(self, control):
         x_flag = [[cirq.CNOT(control, self.flag_qubitx)],
-                  [cirq.CNOT(control, self.flag_qubitx), cirq.measure(self.flag_qubitx)]
+                  [cirq.CNOT(control, self.flag_qubitx), cirq.measure(self.flag_qubitx),
+                   cirq.ResetChannel().on(self.flag_qubitx)]
                   ]
         return x_flag
     #fix bug her
     def create_z_flag(self, target):
         z_flag = [[cirq.H(self.flag_qubitz), cirq.CNOT(self.flag_qubitz, target)],
-                  [cirq.CNOT(self.flag_qubitz, target), cirq.H(self.flag_qubitz), cirq.measure(self.flag_qubitz)]]
+                  [cirq.CNOT(self.flag_qubitz, target), cirq.H(self.flag_qubitz), cirq.measure(self.flag_qubitz),
+                   cirq.ResetChannel().on(self.flag_qubitz)]]
         return z_flag
 
 
@@ -44,14 +46,15 @@ class Flag_complier():
     def test_circuit(self):
         q0,q1,q2,q3 = [cirq.LineQubit(i) for i in range(4)]
         circuit = cirq.Circuit()
-        circuit.append([cirq.H(q0), cirq.CNOT(q0, q1)])
-        circuit.append(cirq.CNOT(q1, q2))
-        circuit.append(cirq.CNOT(q0, q3))
-        circuit.append(cirq.CNOT(q1, q2))
-        print("this circuit should have 10 place where error can propagate")
+        circuit.append(cirq.T(q1))
+        circuit.append( cirq.CNOT(q0, q2))
+        circuit.append(cirq.CNOT(q0, q2))
+        circuit.append(cirq.CNOT(q3, q1))
+
+
         print(circuit)
 
-        return cirq.Circuit(cirq.decompose(circuit, keep=self.keep_clifford_plus_T))
+        return circuit
 
     def toffoli(self):
         qubits = [cirq.LineQubit(i) for i in range(3)]
@@ -61,10 +64,16 @@ class Flag_complier():
 
         return ct_circuit
 
+    def powerpoint_circuit(self):
+        circuit = cirq.Circuit()
+        q0, q1 = [cirq.LineQubit(i) for i in range(2)]
+        circuit.append(cirq.CNOT(q0, q1))
+        return circuit
+
     def test_circuit2(self):
         qf , q1 ,q2 ,q3 = [cirq.LineQubit(i) for i in range(4)]
         circuit = cirq.Circuit()
-        circuit.append([cirq.H(q1), cirq.CNOT(q1,q2)])
+        circuit.append([ cirq.H(q3),cirq.CNOT(q1,q2)])
         circuit.append(cirq.CNOT(q1,q3))
         circuit.append(cirq.CNOT(q1,q2))
 
@@ -161,11 +170,12 @@ class Flag_complier():
             x_map, z_map = Error_Map(circuit).create_map()
             control_qbits = [key[0] for key, value in x_map.items() if len(value) > 1]
             target_qbits  = [key[0] for key, value in z_map.items() if len(value) > 1]
-            x_start_moments = list(map(lambda a:helper,control_qbits))
-            z_start_moments = list(map(lambda a:helper,target_qbits))
+            x_start_moments = list(map(lambda a:0,control_qbits))
+            z_start_moments = list(map(lambda a:0,target_qbits))
             x_end_moments = [(key[1]+helper) for key, value in x_map.items() if len(value) > 1]
             z_end_moments = [(key[1]+helper) for key, value in z_map.items() if len(value) > 1]
-
+            print(control_qbits)
+            print(x_end_moments)
         x_flags = []
         z_flags = []
         for control in control_qbits:
@@ -180,7 +190,7 @@ class Flag_complier():
         helper1z = 0
         #
         number_of_x_flag = len(x_start_moments)
-        number_of_z_flag = len(z_start_moments)
+        #number_of_z_flag = len(z_start_moments)
         for index, current_moment in enumerate(circuit.moments):
             for n in range(number_of_x_flag):
                 if helper0x < number_of_x_flag and x_start_moments[n] == index:
@@ -198,9 +208,11 @@ class Flag_complier():
 
             for n in range(number_of_x_flag):
                 if helper1x < number_of_x_flag and x_end_moments[n] == index:
+                    print(index)
                     for g in x_flags[helper1x][1]:
                         flag_circuit.append(g, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
                     helper1x += 1
+                    print(flag_circuit)
 
             for n in range(number_of_z_flag):
                 if helper1z < number_of_z_flag and z_end_moments[n] == index:
