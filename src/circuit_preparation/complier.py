@@ -167,13 +167,26 @@ class Flag_complier():
                     target_qbits.append(qubits)
         elif stratergy == "map":
             helper =moments_with_cnot_and_index[0][1]
+            print( list(map(lambda m:m[1],moments_with_cnot_and_index)))
             x_map, z_map = Error_Map(circuit).create_map()
             control_qbits = [key[0] for key, value in x_map.items() if len(value) > 1]
             target_qbits  = [key[0] for key, value in z_map.items() if len(value) > 1]
-            x_start_moments = list(map(lambda a:0,control_qbits))
-            z_start_moments = list(map(lambda a:0,target_qbits))
+            # change this into the most recent cnot..
             x_end_moments = [(key[1]+helper) for key, value in x_map.items() if len(value) > 1]
             z_end_moments = [(key[1]+helper) for key, value in z_map.items() if len(value) > 1]
+            for q,m in zip(control_qbits,x_end_moments):
+                print(q,m)
+                print("begin")
+                m:cirq.Moment
+                cnot_on_this = list(filter(lambda m:q == m[0].operations[0].qubits[0],moments_with_cnot_and_index))
+                cnot_on_this = list(map(lambda m:m[1],cnot_on_this))
+                current_index = cnot_on_this.index(m)
+                if current_index == 0:
+                    x_start_moments.append(0)
+                else:
+                    x_start_moments.append(cnot_on_this[current_index-1])
+            z_start_moments = list(map(lambda a: 0, target_qbits))
+
             print(control_qbits)
             print(x_end_moments)
         x_flags = []
@@ -190,17 +203,17 @@ class Flag_complier():
         helper1z = 0
         #
         number_of_x_flag = len(x_start_moments)
-        #number_of_z_flag = len(z_start_moments)
+        number_of_z_flag = len(z_start_moments)
         for index, current_moment in enumerate(circuit.moments):
             for n in range(number_of_x_flag):
                 if helper0x < number_of_x_flag and x_start_moments[n] == index:
-                    for g in x_flags[helper0x][0]:
+                    for g in x_flags[n][0]:
                         flag_circuit.append(g, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
                     helper0x += 1
 
             for n in range(number_of_z_flag):
                 if helper0z < number_of_z_flag and z_start_moments[n] == index:
-                    for g in z_flags[helper0z][0]:
+                    for g in z_flags[n][0]:
                         flag_circuit.append(g, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
                     helper0z += 1
 
@@ -209,14 +222,15 @@ class Flag_complier():
             for n in range(number_of_x_flag):
                 if helper1x < number_of_x_flag and x_end_moments[n] == index:
                     print(index)
-                    for g in x_flags[helper1x][1]:
+                    print(n)
+                    for g in x_flags[n][1]:
                         flag_circuit.append(g, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
                     helper1x += 1
                     print(flag_circuit)
 
             for n in range(number_of_z_flag):
                 if helper1z < number_of_z_flag and z_end_moments[n] == index:
-                    for g in z_flags[helper1z][1]:
+                    for g in z_flags[n][1]:
                         flag_circuit.append(g, strategy=cirq.InsertStrategy.NEW_THEN_INLINE)
                     helper1z += 1
 
