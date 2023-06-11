@@ -58,7 +58,8 @@ if __name__ == '__main__':
     print(f_cir)
     print("\n")
     #print("number_of_qubits="+str(len(f_cir.all_qubits())))
-    Error_Map(icm_circuit).create_map_2(max_error=4)
+    for i in [1,2,3]:
+        evaluate.evaluate_flag_circuit(f_cir,maximum_number_of_error=i)
 
     #test = []
 

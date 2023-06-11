@@ -178,24 +178,23 @@ class Flag_complier():
                 m:cirq.Moment
                 cnot_on_this = list(filter(lambda m:q == m[0].operations[0].qubits[0],moments_with_cnot_and_index))
                 cnot_on_this = list(map(lambda m:m[1],cnot_on_this))
+                #print(q)
+                #print(cnot_on_this)
                 current_index = cnot_on_this.index(m)
                 if current_index == 0:
                     x_start_moments.append(0)
                 else:
-                    x_start_moments.append(cnot_on_this[current_index-1])
+                    x_start_moments.append(cnot_on_this[current_index-1]+1)
             for q,m in zip(target_qbits,x_end_moments):
                 m:cirq.Moment
                 cnot_on_this = list(filter(lambda m:q == m[0].operations[0].qubits[1],moments_with_cnot_and_index))
                 cnot_on_this = list(map(lambda m:m[1],cnot_on_this))
-                print(q)
-                print(cnot_on_this)
                 current_index = cnot_on_this.index(m)
                 if current_index == 0:
                     z_start_moments.append(0)
                 else:
-                    z_start_moments.append(cnot_on_this[current_index-1])
-            print("aaa")
-            print(z_start_moments)
+                    z_start_moments.append(cnot_on_this[current_index-1]+1)
+
         x_flags = []
         z_flags = []
         for control in control_qbits:
