@@ -94,7 +94,7 @@ class Flag_complier():
         # setup
         flag_circuit = cirq.Circuit()
         number_of_momnet = len(circuit.moments)
-        moments_with_index = list(zip(circuit.moments, range(number_of_momnet)))
+        moments_with_index = list(zip( list(circuit.moments), range(number_of_momnet)))
         moments_with_cnot_and_index = list(filter(lambda a: self.__is_moment_with_cnot__(a[0]), moments_with_index))
         control_qbits = []
         target_qbits = []
@@ -167,6 +167,7 @@ class Flag_complier():
                     target_qbits.append(qubits)
         elif stratergy == "map":
             helper =moments_with_cnot_and_index[0][1]
+            print(helper)
             print( list(map(lambda m:m[1],moments_with_cnot_and_index)))
             x_map, z_map = Error_Map(circuit).create_map()
             control_qbits = [key[0] for key, value in x_map.items() if len(value) > 1]
@@ -174,21 +175,23 @@ class Flag_complier():
             # change this into the most recent cnot..
             x_end_moments = [(key[1]+helper) for key, value in x_map.items() if len(value) > 1]
             z_end_moments = [(key[1]+helper) for key, value in z_map.items() if len(value) > 1]
+            print(x_end_moments)
             for q,m in zip(control_qbits,x_end_moments):
                 m:cirq.Moment
                 cnot_on_this = list(filter(lambda m:q == m[0].operations[0].qubits[0],moments_with_cnot_and_index))
                 cnot_on_this = list(map(lambda m:m[1],cnot_on_this))
-                #print(q)
+                print(q)
                 #print(cnot_on_this)
                 current_index = cnot_on_this.index(m)
                 if current_index == 0:
                     x_start_moments.append(0)
                 else:
                     x_start_moments.append(cnot_on_this[current_index-1]+1)
-            for q,m in zip(target_qbits,x_end_moments):
+            for q,m in zip(target_qbits,z_end_moments):
                 m:cirq.Moment
                 cnot_on_this = list(filter(lambda m:q == m[0].operations[0].qubits[1],moments_with_cnot_and_index))
                 cnot_on_this = list(map(lambda m:m[1],cnot_on_this))
+                print(cnot_on_this)
                 current_index = cnot_on_this.index(m)
                 if current_index == 0:
                     z_start_moments.append(0)

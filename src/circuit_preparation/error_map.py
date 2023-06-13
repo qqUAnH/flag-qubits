@@ -28,7 +28,7 @@ class Error_Map():
             index = self.map_size-i-1
             moment:cirq.Moment
             control, target = moment.operations[0].qubits
-            #take len(qubits) step
+            #take w (w is width) step
             for qubit in self.qubits:
                 qubit:cirq.NamedQubit
                 control:cirq.NamedQubit
@@ -44,21 +44,21 @@ class Error_Map():
                     distinct_z_error.append(tuple(original_error))
                     propagated_z_error.append((control,index+1))
 
-                # we will query the dictionary to get the results
+                # we will query the dictionary to update the result
                 helper1 = propagated_x_error
                 helper2 = propagated_z_error
 
+                # this can be changed to take O(w^2) -maybe
                 if not index+1 == self.map_size:
                     propagated_x_error = []
                     propagated_z_error = []
-                    for i,error in enumerate(helper1):
+                    for error in helper1:
                         for e in self.X_map[tuple(error)]:
                             propagated_x_error.append(e)
-                    for i,error in enumerate(helper2):
+                    for error in helper2:
                         for e in self.Z_map[tuple(error)]:
                             propagated_z_error.append(e)
-
-
+                # this two line below is bad and could be removed
                 propagated_x_error = [e for e in propagated_x_error if propagated_x_error.count(e) % 2 == 1]
                 propagated_z_error = [e for e in propagated_z_error if propagated_z_error.count(e) % 2 == 1]
 

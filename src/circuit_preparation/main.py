@@ -33,14 +33,17 @@ if __name__ == '__main__':
     current_directory = os.getcwd()
     new_directory = '/path/to/new_directory'
     circuit = c.test_circuit()
+
+
+
+    x_error = error_circuit.X_error()
+    qubits  = [cirq.LineQubit(i) for i in range(5)]
+    circuitA = cirq.testing.random_circuit(qubits,n_moments=5,op_density=0.6,gate_domain={cirq.CNOT:2})
+    circuit = cirq.testing.random_circuit(qubits,n_moments=1,op_density=0.7,gate_domain={cirq.H:1}) + circuitA
+    print(circuit)
     icm_circuit = c.decompose_to_ICM(circuit)
     icm_circuit: cirq.Circuit
-    #TODO:need to only add flag between
-    # add a big flag
-    # operation with
-    #why total case varies : fix number of total case
-    x_error = error_circuit.X_error()
-
+    """
     pp = cirq.Circuit()
     q0 = cirq.NamedQubit("0")
     q1 = cirq.NamedQubit("1")
@@ -49,16 +52,16 @@ if __name__ == '__main__':
     pp.append(cirq.CNOT(q0, q1))
     pp.append(cirq.CNOT(q0, fx0))
     pp.append(cirq.measure(fx0))
-
+    """
     #f_cir =c.add_flag(icm_circuit,number_of_x_flag=3,number_of_z_flag=3)
-    print(icm_circuit)
     f_cir =c.add_flag(icm_circuit,stratergy="map")
     #f_cir =c.add_flag(icm_circuit,stratergy="heuristic")
     print("\n")
     print(f_cir)
     print("\n")
-    #print("number_of_qubits="+str(len(f_cir.all_qubits())))
-    for i in [1,2,3]:
+
+
+    for i in [1,2]:
         evaluate.evaluate_flag_circuit(f_cir,maximum_number_of_error=i)
 
     #test = []
