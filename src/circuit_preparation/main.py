@@ -43,16 +43,19 @@ if __name__ == '__main__':
     print(circuit)
     icm_circuit = c.decompose_to_ICM(circuit)
     icm_circuit: cirq.Circuit
-    """
+
     pp = cirq.Circuit()
     q0 = cirq.NamedQubit("0")
     q1 = cirq.NamedQubit("1")
     fx0 = cirq.NamedQubit("0xf")
+    pp.append(cirq.X(q0))
     pp.append(cirq.CNOT(q0,fx0))
     pp.append(cirq.CNOT(q0, q1))
     pp.append(cirq.CNOT(q0, fx0))
     pp.append(cirq.measure(fx0))
-    """
+
+    icm_circuit = c.decompose_to_ICM(c.test_circuit2())
+
     #f_cir =c.add_flag(icm_circuit,number_of_x_flag=3,number_of_z_flag=3)
     f_cir =c.add_flag(icm_circuit,stratergy="map")
     #f_cir =c.add_flag(icm_circuit,stratergy="heuristic")

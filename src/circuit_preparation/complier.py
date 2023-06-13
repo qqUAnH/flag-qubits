@@ -73,7 +73,7 @@ class Flag_complier():
     def test_circuit2(self):
         qf , q1 ,q2 ,q3 = [cirq.LineQubit(i) for i in range(4)]
         circuit = cirq.Circuit()
-        circuit.append([ cirq.H(q3),cirq.CNOT(q1,q2)])
+        circuit.append([ cirq.X(q3),cirq.CNOT(q1,q2)])
         circuit.append(cirq.CNOT(q1,q3))
         circuit.append(cirq.CNOT(q1,q2))
 
